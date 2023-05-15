@@ -105,7 +105,7 @@ def main() -> None:
 
     anagrams: Dict[str, List[str]] = find_anagrams(words)
 
-    most_anagrams = get_most_anagram(anagrams)
+    most_anagrams: Dict[str, List[str]] = get_most_anagram(anagrams)
 
     for standard_form, word_list in most_anagrams.items():
         print(standard_form)
