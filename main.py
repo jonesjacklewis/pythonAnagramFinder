@@ -5,22 +5,8 @@ from datetime import datetime, timedelta
 from typing import List, Dict
 import requests
 
-def check_if_file_exists(path: str) -> bool:
-    """Checks if a file exists
 
-    Args:
-        path (str): A path to a file
-
-    Returns:
-        bool: True if the file exists, False otherwise
-    """
-    try:
-        with open(path, "r", encoding = "utf-8") as _:
-            return True
-    except FileNotFoundError:
-        return False
-
-def check_if_file_newer_than_x_days(path: str, days: int = 7) -> bool:
+def check_if_file_newer_than_x_days(path: str, max_days_old: int = 7) -> bool:
     """Checks if a file is newer than a specified number of days
 
     Args:
@@ -31,17 +17,16 @@ def check_if_file_newer_than_x_days(path: str, days: int = 7) -> bool:
         bool: True if the file is newer than the specified number of days, False otherwise
     """
 
-    if not check_if_file_exists(path):
+    if not os.path.exists(path):
         return False
 
     file_timestamp: datetime = datetime.fromtimestamp(os.path.getmtime(path))
     current_timestamp: datetime = datetime.now()
 
-    if file_timestamp + timedelta(days = days) > current_timestamp:
-        return True
-    return False
+    return file_timestamp + timedelta(days=max_days_old) > current_timestamp
 
-def get_words_from_uri(uri: str, filename: str = "words.txt") -> None:
+
+def get_words_from_uri(words_uri: str, words_filename: str = "words.txt") -> None:
     """Returns a list of words from a URI
 
     Args:
@@ -50,17 +35,18 @@ def get_words_from_uri(uri: str, filename: str = "words.txt") -> None:
         List[str]: A list of words
     """
     print("From URI")
-    response: requests.Response = requests.get(uri)
-    text: str = response.text
+    words_uri_response: requests.Response = requests.get(words_uri)
+    words_uri_text: str = words_uri_response.text
 
-    response.close()
+    words_uri_response.close()
 
-    words: List[str] = [word.strip() + "\n" for word in text.split("\n")]
+    word_list: List[str] = [word.strip() + "\n" for word in words_uri_text.split("\n")]
 
-    with open(filename, "w", encoding = "utf-8") as file:
-        file.writelines(words)
+    with open(words_filename, "w", encoding="utf-8") as file:
+        file.writelines(word_list)
 
-def get_words_from_file(path: str) -> List[str]:
+
+def get_words_from_file(words_path: str) -> List[str]:
     """Returns a list of words from a file
 
     Args:
@@ -69,10 +55,10 @@ def get_words_from_file(path: str) -> List[str]:
         List[str]: A list of words
     """
     print("From File")
-    with open(path, "r", encoding = "utf-8") as file:
-        words: List[str] = [word.strip() for word in file.readlines()]
+    with open(words_path, "r", encoding="utf-8") as file:
+        word_list: List[str] = [word.strip() for word in file.readlines()]
 
-    return words
+    return word_list
 
 
 def convert_to_standard_form(word: str) -> str:
@@ -98,17 +84,17 @@ def find_anagrams(word_list: List[str]) -> Dict[str, List[str]]:
     Returns:
         Dict[str, List[str]]: A dict with the standard form of a word and words matching it
     """
-    anagrams: Dict[str, List[str]] = {}
+    anagrams_dict: Dict[str, List[str]] = {}
 
     for word in word_list:
         standard_form = convert_to_standard_form(word)
 
-        if standard_form in anagrams:
-            anagrams[standard_form].append(word)
+        if standard_form in anagrams_dict:
+            anagrams_dict[standard_form].append(word)
         else:
-            anagrams[standard_form] = [word]
+            anagrams_dict[standard_form] = [word]
 
-    return anagrams
+    return anagrams_dict
 
 
 def filter_anagrams_by_number(
@@ -123,11 +109,13 @@ def filter_anagrams_by_number(
     Returns:
         Dict[str, List[str]]: Dict filtered to the specified count
     """
-    filtered: Dict[str, List[str]] = {
-        key: value for key, value in anagrams.items() if len(value) >= min_count
+    filtered_anagrams: Dict[str, List[str]] = {
+        standard_form: anagram_list
+        for standard_form, anagram_list in anagrams.items()
+        if len(anagram_list) >= min_count
     }
 
-    return filtered
+    return filtered_anagrams
 
 
 def get_most_anagram(anagrams: Dict[str, List[str]]) -> Dict[str, List[str]]:
@@ -141,11 +129,13 @@ def get_most_anagram(anagrams: Dict[str, List[str]]) -> Dict[str, List[str]]:
     """
     most_anagrams: int = max(len(anagram) for anagram in anagrams.values())
 
-    filtered: Dict[str, List[str]] = {
-        key: value for key, value in anagrams.items() if len(value) == most_anagrams
+    filtered_anagrams: Dict[str, List[str]] = {
+        standard_form: anagram_list
+        for standard_form, anagram_list in anagrams.items()
+        if len(anagram_list) == most_anagrams
     }
 
-    return filtered
+    return filtered_anagrams
 
 
 def get_longest_anagram(anagrams: Dict[str, List[str]]) -> Dict[str, List[str]]:
@@ -162,40 +152,42 @@ def get_longest_anagram(anagrams: Dict[str, List[str]]) -> Dict[str, List[str]]:
         len(word) for word in anagrams.keys() if len(anagrams[word]) > 1
     )
 
-    filtered: Dict[str, List[str]] = {
-        key: value
-        for key, value in anagrams.items()
-        if len(key) == longest_word_length and len(value) > 1
+    filtered_anagrams: Dict[str, List[str]] = {
+        standard_form: anagram_list
+        for standard_form, anagram_list in anagrams.items()
+        if len(standard_form) == longest_word_length and len(anagram_list) > 1
     }
 
-    return filtered
+    return filtered_anagrams
 
 
 def main() -> None:
     """Main method"""
 
-    if not check_if_file_exists("words.txt") or not check_if_file_newer_than_x_days("words.txt"):
+    if not os.path.exists("words.txt") or not check_if_file_newer_than_x_days(
+        "words.txt"
+    ):
         word_list_uri: str = (
             "https://raw.githubusercontent.com/dwyl/english-words/master/words.txt"
         )
 
         get_words_from_uri(word_list_uri)
 
-    words: List[str] = get_words_from_file("words.txt")
+    word_list: List[str] = get_words_from_file("words.txt")
 
-    anagrams: Dict[str, List[str]] = find_anagrams(words)
+    anagrams: Dict[str, List[str]] = find_anagrams(word_list)
 
     most_anagrams: Dict[str, List[str]] = get_most_anagram(anagrams)
 
     longest_anagrams: Dict[str, List[str]] = get_longest_anagram(anagrams)
 
     print("Most anagrams:")
-    for key, value in most_anagrams.items():
-        print(f"{key}: {value}")
+    for standard_form, anagram_list in most_anagrams.items():
+        print(f"{standard_form}: {anagram_list}")
 
     print("Longest anagrams:")
-    for key, value in longest_anagrams.items():
-        print(f"{key}: {value}")
+    for standard_form, anagram_list in longest_anagrams.items():
+        print(f"{standard_form}: {anagram_list}")
 
 
 if __name__ == "__main__":
