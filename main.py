@@ -1,10 +1,47 @@
 """Find all anagrams in a word list
 """
+import os
+from datetime import datetime, timedelta
 from typing import List, Dict
 import requests
 
+def check_if_file_exists(path: str) -> bool:
+    """Checks if a file exists
 
-def get_words_from_uri(uri: str) -> List[str]:
+    Args:
+        path (str): A path to a file
+
+    Returns:
+        bool: True if the file exists, False otherwise
+    """
+    try:
+        with open(path, "r", encoding = "utf-8") as _:
+            return True
+    except FileNotFoundError:
+        return False
+
+def check_if_file_newer_than_x_days(path: str, days: int = 7) -> bool:
+    """Checks if a file is newer than a specified number of days
+
+    Args:
+        path (str): A path to a file
+        days (int, optional): Number of days. Defaults to 7.
+
+    Returns:
+        bool: True if the file is newer than the specified number of days, False otherwise
+    """
+
+    if not check_if_file_exists(path):
+        return False
+
+    file_timestamp: datetime = datetime.fromtimestamp(os.path.getmtime(path))
+    current_timestamp: datetime = datetime.now()
+
+    if file_timestamp + timedelta(days = days) > current_timestamp:
+        return True
+    return False
+
+def get_words_from_uri(uri: str, filename: str = "words.txt") -> None:
     """Returns a list of words from a URI
 
     Args:
@@ -12,13 +49,28 @@ def get_words_from_uri(uri: str) -> List[str]:
     Returns:
         List[str]: A list of words
     """
-
+    print("From URI")
     response: requests.Response = requests.get(uri)
     text: str = response.text
 
     response.close()
 
-    words: List[str] = [word.strip() for word in text.split("\n")]
+    words: List[str] = [word.strip() + "\n" for word in text.split("\n")]
+
+    with open(filename, "w", encoding = "utf-8") as file:
+        file.writelines(words)
+
+def get_words_from_file(path: str) -> List[str]:
+    """Returns a list of words from a file
+
+    Args:
+        path (str): A path to a file
+    Returns:
+        List[str]: A list of words
+    """
+    print("From File")
+    with open(path, "r", encoding = "utf-8") as file:
+        words: List[str] = [word.strip() for word in file.readlines()]
 
     return words
 
@@ -122,11 +174,14 @@ def get_longest_anagram(anagrams: Dict[str, List[str]]) -> Dict[str, List[str]]:
 def main() -> None:
     """Main method"""
 
-    word_list_uri: str = (
-        "https://raw.githubusercontent.com/dwyl/english-words/master/words.txt"
-    )
+    if not check_if_file_exists("words.txt") or not check_if_file_newer_than_x_days("words.txt"):
+        word_list_uri: str = (
+            "https://raw.githubusercontent.com/dwyl/english-words/master/words.txt"
+        )
 
-    words: List[str] = get_words_from_uri(word_list_uri)
+        get_words_from_uri(word_list_uri)
+
+    words: List[str] = get_words_from_file("words.txt")
 
     anagrams: Dict[str, List[str]] = find_anagrams(words)
 
