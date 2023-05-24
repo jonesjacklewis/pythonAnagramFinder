@@ -34,7 +34,6 @@ def get_words_from_uri(words_uri: str, words_filename: str = "words.txt") -> Non
     Returns:
         List[str]: A list of words
     """
-    print("From URI")
     words_uri_response: requests.Response = requests.get(words_uri)
     words_uri_text: str = words_uri_response.text
 
@@ -54,7 +53,6 @@ def get_words_from_file(words_path: str) -> List[str]:
     Returns:
         List[str]: A list of words
     """
-    print("From File")
     with open(words_path, "r", encoding="utf-8") as file:
         word_list: List[str] = [word.strip() for word in file.readlines()]
 
@@ -87,7 +85,7 @@ def find_anagrams(word_list: List[str]) -> Dict[str, List[str]]:
     anagrams_dict: Dict[str, List[str]] = {}
 
     for word in word_list:
-        standard_form = convert_to_standard_form(word)
+        standard_form: str = convert_to_standard_form(word)
 
         if standard_form in anagrams_dict:
             anagrams_dict[standard_form].append(word)
@@ -149,7 +147,9 @@ def get_longest_anagram(anagrams: Dict[str, List[str]]) -> Dict[str, List[str]]:
     """
 
     longest_word_length: int = max(
-        len(word) for word in anagrams.keys() if len(anagrams[word]) > 1
+        len(word)
+        for word in anagrams.keys()
+        if len(anagrams[word]) > 1
     )
 
     filtered_anagrams: Dict[str, List[str]] = {
